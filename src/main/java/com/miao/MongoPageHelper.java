@@ -69,13 +69,16 @@ public class MongoPageHelper {
      */
     public <T, R> PageResult<R> pageQuery(Query query, Class<T> entityClass,
         Integer pageSize, Integer pageNum, Function<T, R> mapper, String lastId) {
+        final Criteria criteria = new Criteria();
+        query.addCriteria(criteria)
+                .with(new Sort(Collections.singletonList(new Order(Direction.ASC, ID))));
         //分页逻辑
         long total = mongoTemplate.count(query, entityClass);
         final Integer pages = (int) Math.ceil(total / (double) pageSize);
         if (pageNum <= 0 || pageNum > pages) {
             pageNum = FIRST_PAGE_NUM;
         }
-        final Criteria criteria = new Criteria();
+
         if (StringUtils.isNotBlank(lastId)) {
             if (pageNum != FIRST_PAGE_NUM) {
                 criteria.and(ID).gt(new ObjectId(lastId));
@@ -87,8 +90,7 @@ public class MongoPageHelper {
         }
 
         final List<T> entityList = mongoTemplate
-            .find(query.addCriteria(criteria)
-                    .with(new Sort(Collections.singletonList(new Order(Direction.ASC, ID)))),
+            .find(query,
                 entityClass);
 
         final PageResult<R> pageResult = new PageResult<>();
